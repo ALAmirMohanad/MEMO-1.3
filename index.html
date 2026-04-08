@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Memo Form - Multi-Memo</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f4;
+            --form-bg: white;
+            --text-color: #333;
+            --border-color: #ccc;
+            --header-border: #eee;
+            --button-copy-bg: #007bff;
+            --button-reset-bg: #dc3545;
+            --button-success-bg: #28a745;
+            --button-undo-bg: #1e7e34;
+            --button-color: white;
+            --button-4pt-memo-bg: #28a745;
+        }
+
+        .dark-mode {
+            --bg-color: #121212;
+            --form-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --border-color: #555;
+            --header-border: #444;
+            --button-copy-bg: #4da6ff;
+            --button-reset-bg: #ff6666;
+            --button-success-bg: #2ecc71;
+            --button-undo-bg: #145a32;
+            --button-color: black;
+            --button-4pt-memo-bg: #218838;
+        }
+
+        body {
+            font-family: sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .main-wrapper {
+            display: flex;
+            gap: 15px;
+            width: 100%;
+            max-width: 850px;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .memo-tab {
+            width: 45px;
+            height: 40px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: var(--form-bg);
+            color: var(--text-color);
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .memo-tab.active {
+            background-color: var(--button-copy-bg);
+            color: white;
+            border-color: var(--button-copy-bg);
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.5);
+        }
+
+        .form-container {
+            background: var(--form-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            flex-grow: 1;
+            position: relative;
+        }
+
+        h1 {
+            border-bottom: 2px solid var(--header-border);
+            padding-bottom: 10px;
+            text-align: center;
+            margin-top: 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+            background-color: var(--form-bg);
+            color: var(--text-color);
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .wide-select {
+            width: 65% !important;
+            margin-bottom: 0 !important;
+        }
+
+        .toggle-btn {
+            width: 33%;
+            padding: 9px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            transition: background-color 0.3s;
+            text-align: center;
+            text-transform: uppercase;
+        }
+
+        .toggle-off { background-color: var(--button-reset-bg); }
+        .toggle-on { background-color: var(--button-success-bg); }
+
+        .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .sts-btn {
+            background-color: var(--button-copy-bg);
+            color: var(--button-color);
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        button.action-btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            color: var(--button-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+
+        #copyBtn { background-color: var(--button-copy-bg); width: 40%; }
+        #clearBtn { background-color: var(--button-reset-bg); width: 40%; }
+        #undoBtn { background-color: var(--button-undo-bg); width: 15%; font-size: 20px; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            50% { transform: translateX(6px); }
+            75% { transform: translateX(-6px); }
+        }
+
+        .shake-no { animation: shake 0.4s ease-in-out; }
+
+        #darkModeToggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            color: var(--text-color);
+        }
+
+        #fourPointMemoBtn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: var(--button-4pt-memo-bg);
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+    <div class="sidebar" id="sidebar"></div>
+
+    <div class="form-container">
+        <button id="fourPointMemoBtn" onclick="copyFourPointMemo()">4 point memo</button>
+        <button id="darkModeToggle" onclick="toggleDarkMode()" aria-label="Toggle dark mode">🌙</button>
+
+        <h1 id="memoTitle">MEMO 1</h1>
+
+        <form id="customerForm">
+            <label for="vulnerable_customer">Vulnerable Customer Script Completed Today :</label>
+            <div class="flex-row">
+                <select id="vulnerable_customer" name="vulnerable_customer" class="wide-select">
+                    <option value="Yes">Yes</option>
+                    <option value="N/A">N/A</option>
+                </select>
+                <button type="button" id="toggle_vulnerable" class="toggle-btn toggle-off" onclick="toggleStatus('vulnerable')">Prev Agent? NO</button>
+                <input type="checkbox" id="prev_vulnerable" style="display:none;">
+            </div>
+
+            <label for="ctn_number">CTN :</label>
+            <input type="text" id="ctn_number" name="ctn_number" placeholder="Enter mobile number">
+
+            <label for="caller">Who was the caller?</label>
+            <input type="text" id="caller" name="caller">
+
+            <label for="account_holder_type">Account holder or contact type:</label>
+            <select id="account_holder_type" name="account_holder_type">
+                <option value="Holder">Account Holder</option>
+                <option value="Level 1">Level 1 Contact</option>
+                <option value="Level 2">Level 2 Contact</option>
+                <option value="Other">Other user</option>
+            </select>
+
+            <label for="dpa_checks">Passed/failed DPA checks:</label>
+            <div class="flex-row">
+                <select id="dpa_checks" name="dpa_checks" class="wide-select">
+                    <option value="Passed by PIN">Passed by PIN</option>
+                    <option value="Passed by Memorable word">Passed by Memorable word</option>
+                    <option value="Passed by OTAC">Passed by OTAC</option>
+                    <option value="Passed by security questions">Passed by security questions</option>
+                    <option value="Passed by Mobile Detection">Passed by Mobile Detection</option>
+                    <option value="Passed by Serial Number">Passed by Serial Number</option>
+                    <option value="DPA not required">DPA not required</option>
+                    <option value="DPA failed">DPA failed</option>
+                </select>
+                <button type="button" id="toggle_dpa" class="toggle-btn toggle-off" onclick="toggleStatus('dpa')">Prev Agent? NO</button>
+                <input type="checkbox" id="prev_dpa" style="display:none;">
+            </div>
+
+            <label for="issue">What is the customer’s issue?</label>
+            <textarea id="issue" name="issue" rows="3"></textarea>
+
+            <div class="label-row">
+                <label for="actions" style="margin-top:0;">Actions taken by you:</label>
+                <button type="button" class="sts-btn" onclick="insertSTSTemplate()">+ STS</button>
+            </div>
+            <textarea id="actions" name="actions" rows="6"></textarea>
+
+            <label>The outcome agreed with the customer:</label>
+            <div class="flex-row">
+                <select id="outcome_status" name="outcome_status" style="width: 30%;">
+                    <option value="Agreed">Agreed</option>
+                    <option value="Not agreed">Not agreed</option>
+                    <option value="Dropped">Dropped</option>
+                    <option value="No answer">No answer</option>
+                </select>
+                <input type="text" id="outcome_note" name="outcome_note" style="width: 68%;">
+            </div>
+
+            <label>Did the customer request to speak to someone else?</label>
+            <div class="flex-row">
+                <select id="requested_someone_else_opt" name="requested_someone_else_opt" style="width: 30%;">
+                    <option value="N/A">N/A</option>
+                    <option value="Yes">Yes</option>
+                </select>
+                <input type="text" id="requested_someone_else_note" name="requested_someone_else_note"  style="width: 68%;">
+            </div>
+
+            <label>Did you transfer the call?</label>
+            <div class="flex-row">
+                <select id="transferred_opt" name="transferred_opt" style="width: 30%;">
+                    <option value="N/A">N/A</option>
+                    <option value="Yes">Yes</option>
+                </select>
+                <input type="text" id="transferred_note" name="transferred_note" style="width: 68%;">
+            </div>
+
+            <div class="button-group">
+                <button type="button" id="copyBtn" class="action-btn" onclick="copyFormContent()">Copy</button>
+                <button type="reset" id="clearBtn" class="action-btn">Clear Memo</button>
+                <button type="button" id="undoBtn" class="action-btn" onclick="restoreLastDeleted()" title="Undo Clear">↩</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentMemoId = 1;
+    let clearHistory = [];
+
+    document.addEventListener('DOMContentLoaded', () => {
+        setupSidebar();
+        loadMemo(1);
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('darkModeToggle').textContent = '☀️';
+        }
+    });
+
+    function setupSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        for (let i = 1; i <= 15; i++) {
+            const btn = document.createElement('button');
+            btn.innerText = i;
+            btn.classList.add('memo-tab');
+            btn.id = `tab-${i}`;
+            btn.onclick = () => switchMemo(i);
+            sidebar.appendChild(btn);
+        }
+        document.getElementById('tab-1').classList.add('active');
+    }
+
+    function switchMemo(id) {
+        document.querySelectorAll('.memo-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(`tab-${id}`).classList.add('active');
+        document.getElementById('memoTitle').innerText = `MEMO ${id}`;
+        currentMemoId = id;
+        loadMemo(id);
+    }
+
+    function loadMemo(id) {
+        const fields = document.querySelectorAll('#customerForm input, #customerForm textarea, #customerForm select');
+        fields.forEach(field => {
+            const savedValue = localStorage.getItem(`memo${id}_${field.id}`);
+            if (savedValue !== null) {
+                if (field.type === 'checkbox') {
+                    field.checked = savedValue === 'true';
+                    updateToggleUI(field.id.split('_')[1], field.checked);
+                } else {
+                    field.value = savedValue;
+                }
+            } else {
+                if (field.type === 'checkbox') {
+                    field.checked = false;
+                    updateToggleUI(field.id.split('_')[1], false);
+                } else {
+                    field.value = (field.tagName === 'SELECT') ? field.options[0].value : '';
+                }
+            }
+        });
+    }
+
+    function toggleStatus(type) {
+        const checkbox = document.getElementById(`prev_${type}`);
+        checkbox.checked = !checkbox.checked;
+        updateToggleUI(type, checkbox.checked);
+        localStorage.setItem(`memo${currentMemoId}_prev_${type}`, checkbox.checked);
+    }
+
+    function updateToggleUI(type, isActive) {
+        const btn = document.getElementById(`toggle_${type}`);
+        if (!btn) return;
+        if (isActive) {
+            btn.textContent = "Prev Agent? YES";
+            btn.classList.remove('toggle-off');
+            btn.classList.add('toggle-on');
+        } else {
+            btn.textContent = "Prev Agent? NO";
+            btn.classList.remove('toggle-on');
+            btn.classList.add('toggle-off');
+        }
+    }
+
+    document.getElementById('customerForm').addEventListener('input', (e) => {
+        if (e.target.id && e.target.type !== 'button') {
+            const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+            localStorage.setItem(`memo${currentMemoId}_${e.target.id}`, val);
+        }
+    });
+
+    function toggleDarkMode() {
+        const body = document.body;
+        body.classList.toggle('dark-mode');
+        const isDark = body.classList.contains('dark-mode');
+        document.getElementById('darkModeToggle').textContent = isDark ? '☀️' : '🌙';
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+    }
+
+    function insertSTSTemplate() {
+        const actionsField = document.getElementById('actions');
+        const stsTemplate = `-- Order Summary\nPlan: \nPrice: \nDiscount: \npay monthly number: \nSpend manager: \nSecure net 3 month free: \nMarketing: \nOrder number: `;
+        actionsField.value += (actionsField.value ? '\n' : '') + stsTemplate;
+        localStorage.setItem(`memo${currentMemoId}_actions`, actionsField.value);
+        actionsField.focus();
+    }
+
+    function restoreLastDeleted() {
+        const btn = document.getElementById('undoBtn');
+        if (clearHistory.length === 0) {
+            btn.classList.add('shake-no');
+            setTimeout(() => { btn.classList.remove('shake-no'); }, 400);
+            return;
+        }
+        const historyItem = clearHistory.pop();
+        const data = historyItem.data;
+        const targetMemoId = historyItem.memoId;
+        if (currentMemoId !== targetMemoId) switchMemo(targetMemoId);
+
+        const fields = document.querySelectorAll('#customerForm input, #customerForm textarea, #customerForm select');
+        fields.forEach(field => {
+            if (data[field.id] !== undefined) {
+                if (field.type === 'checkbox') {
+                    field.checked = data[field.id];
+                    updateToggleUI(field.id.split('_')[1], field.checked);
+                } else {
+                    field.value = data[field.id];
+                }
+                localStorage.setItem(`memo${targetMemoId}_${field.id}`, data[field.id]);
+            }
+        });
+    }
+
+    function copyFormContent() {
+        const f = (id) => document.getElementById(id).value;
+        const isChecked = (id) => document.getElementById(id).checked;
+        const NL = '\r\n';
+        const DNL = '\r\n\r\n';
+        
+        const prevVul = isChecked('prev_vulnerable') ? " (Done by previous agent)" : "";
+        const prevDPA = isChecked('prev_dpa') ? " (Done by previous agent)" : "";
+        const outNote = f('outcome_note') ? ` - ${f('outcome_note')}` : "";
+        const reqNote = f('requested_someone_else_note') ? ` - ${f('requested_someone_else_note')}` : "";
+        const transNote = f('transferred_note') ? ` - ${f('transferred_note')}` : "";
+        
+        const content = 
+            `Vulnerable Customer Script Completed Today :` + NL + f('vulnerable_customer') + prevVul + DNL +
+            `CTN :` + NL + f('ctn_number') + DNL +
+            `Who was the caller?:` + NL + f('caller') + DNL +
+            `Account holder or contact type:` + NL + f('account_holder_type') + DNL +
+            `Passed/failed DPA checks:` + NL + f('dpa_checks') + prevDPA + DNL +
+            `What is the customer’s issue?:` + NL + f('issue') + DNL +
+            `Actions taken by you:` + NL + f('actions') + DNL +
+            `The outcome agreed with the customer:` + NL + f('outcome_status') + outNote + DNL +
+            `Did the customer request to speak to someone else?:` + NL + f('requested_someone_else_opt') + reqNote + DNL +
+            `Did you transfer the call?:` + NL + f('transferred_opt') + transNote;
+
+        navigator.clipboard.writeText(content).then(() => {
+            const btn = document.getElementById('copyBtn');
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+        });
+    }
+
+    function copyFourPointMemo() {
+        const text = `Why have you accessed the account? mistake\r\nWhat actions (if any) have you taken on the account? N/A\r\nWhat customer contact (if any) has taken place? N/A\r\nWhat are the next action or steps (if any)? N/A`;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.getElementById('fourPointMemoBtn');
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = '4 point memo'; }, 1500);
+        });
+    }
+
+    document.getElementById('customerForm').addEventListener('reset', (e) => {
+        const clearBtn = document.getElementById('clearBtn');
+        const fields = document.querySelectorAll('#customerForm input, #customerForm textarea, #customerForm select');
+        let snapshot = {};
+        fields.forEach(field => {
+            snapshot[field.id] = field.type === 'checkbox' ? field.checked : field.value;
+        });
+        clearHistory.push({ memoId: currentMemoId, data: snapshot });
+        if (clearHistory.length > 10) clearHistory.shift();
+
+        clearBtn.textContent = "Cleared!";
+        setTimeout(() => { clearBtn.textContent = "Clear Memo"; }, 1500);
+        setTimeout(() => {
+            fields.forEach(field => localStorage.removeItem(`memo${currentMemoId}_${field.id}`));
+            updateToggleUI('vulnerable', false);
+            updateToggleUI('dpa', false);
+        }, 10);
+    });
+</script>
+
+</body>
+</html>
