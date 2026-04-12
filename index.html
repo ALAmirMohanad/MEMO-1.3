@@ -17,6 +17,12 @@
             --button-undo-bg: #1e7e34;
             --button-color: white;
             --button-4pt-memo-bg: #28a745;
+            --branch-color: %23a0522d;
+            --petal1: %23f472b6;
+            --petal2: %23c084fc;
+            --petal3: %23f9a8d4;
+            --petal4: %23d946ef;
+            --center: %23fde68a;
         }
 
         .dark-mode {
@@ -31,6 +37,12 @@
             --button-undo-bg: #145a32;
             --button-color: black;
             --button-4pt-memo-bg: #218838;
+            --branch-color: %23c8a882;
+            --petal1: %23f9a8d4;
+            --petal2: %23d8b4fe;
+            --petal3: %23fbcfe8;
+            --petal4: %23e879f9;
+            --center: %23fde68a;
         }
 
         body {
@@ -53,8 +65,9 @@
         }
 
         .sidebar {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 45px 45px;
+            grid-auto-rows: 40px;
             gap: 8px;
         }
 
@@ -107,7 +120,7 @@
             border: 1px solid var(--border-color);
             border-radius: 4px;
             box-sizing: border-box;
-            font-size: 14px;
+            font-size: 18px;
             background-color: var(--form-bg);
             color: var(--text-color);
         }
@@ -180,8 +193,10 @@
         }
 
         #copyBtn { background-color: var(--button-copy-bg); width: 40%; }
-        #clearBtn { background-color: var(--button-reset-bg); width: 40%; }
-        #undoBtn { background-color: var(--button-undo-bg); width: 15%; font-size: 20px; }
+        #clearBtn { background-color: var(--button-reset-bg); width: 30%; font-size: 13px; }
+        #clearAllBtn { background-color: #8b0000; width: 9%; font-size: 18px; }
+        #undoBtn { background-color: var(--button-undo-bg); width: 9%; font-size: 18px; }
+        #redoBtn { background-color: #c2185b; width: 9%; font-size: 18px; }
 
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
@@ -232,8 +247,8 @@
             <label for="vulnerable_customer">Vulnerable Customer Script Completed Today :</label>
             <div class="flex-row">
                 <select id="vulnerable_customer" name="vulnerable_customer" class="wide-select">
-                    <option value="Yes">Yes</option>
                     <option value="N/A">N/A</option>
+                    <option value="Yes">Yes</option>
                 </select>
                 <button type="button" id="toggle_vulnerable" class="toggle-btn toggle-off" onclick="toggleStatus('vulnerable')">Prev Agent? NO</button>
                 <input type="checkbox" id="prev_vulnerable" style="display:none;">
@@ -256,6 +271,7 @@
             <label for="dpa_checks">Passed/failed DPA checks:</label>
             <div class="flex-row">
                 <select id="dpa_checks" name="dpa_checks" class="wide-select">
+                    <option value="N/A">N/A</option>
                     <option value="Passed by PIN">Passed by PIN</option>
                     <option value="Passed by Memorable word">Passed by Memorable word</option>
                     <option value="Passed by OTAC">Passed by OTAC</option>
@@ -269,12 +285,16 @@
                 <input type="checkbox" id="prev_dpa" style="display:none;">
             </div>
 
-            <label for="issue">What is the customer’s issue?</label>
+            <label for="issue">What is the customer's issue?</label>
             <textarea id="issue" name="issue" rows="3"></textarea>
 
             <div class="label-row">
                 <label for="actions" style="margin-top:0;">Actions taken by you:</label>
-                <button type="button" class="sts-btn" onclick="insertSTSTemplate()">+ STS</button>
+                <div style="display:flex;gap:6px;">
+                    <button type="button" class="sts-btn" onclick="insertSTSTemplate()">+ STS</button>
+                    <button type="button" class="sts-btn" onclick="insertSCIOTemplate()">SCIO</button>
+                    <button type="button" class="sts-btn" onclick="insertSLATemplate()">SLA</button>
+                </div>
             </div>
             <textarea id="actions" name="actions" rows="6"></textarea>
 
@@ -310,7 +330,9 @@
             <div class="button-group">
                 <button type="button" id="copyBtn" class="action-btn" onclick="copyFormContent()">Copy</button>
                 <button type="reset" id="clearBtn" class="action-btn">Clear Memo</button>
+                <button type="button" id="clearAllBtn" class="action-btn" onclick="clearAllMemos()" title="Clear All Memos">🗑️</button>
                 <button type="button" id="undoBtn" class="action-btn" onclick="restoreLastDeleted()" title="Undo Clear">↩</button>
+                <button type="button" id="redoBtn" class="action-btn" onclick="redoLastDeleted()" title="Redo Clear">↪</button>
             </div>
         </form>
     </div>
@@ -318,7 +340,10 @@
 
 <script>
     let currentMemoId = 1;
-    let clearHistory = [];
+    let clearHistory = {}; // keyed by memoId
+    let redoHistory = {};  // keyed by memoId
+    let clearAllHistory = []; // stack of full snapshots (all 30 memos)
+    let redoAllHistory = [];  // stack of full snapshots for redo
 
     document.addEventListener('DOMContentLoaded', () => {
         setupSidebar();
@@ -331,13 +356,16 @@
 
     function setupSidebar() {
         const sidebar = document.getElementById('sidebar');
+        // Fill grid row by row: [1,16], [2,17], ..., [15,30]
         for (let i = 1; i <= 15; i++) {
-            const btn = document.createElement('button');
-            btn.innerText = i;
-            btn.classList.add('memo-tab');
-            btn.id = `tab-${i}`;
-            btn.onclick = () => switchMemo(i);
-            sidebar.appendChild(btn);
+            [i, i + 15].forEach(num => {
+                const btn = document.createElement('button');
+                btn.innerText = num;
+                btn.classList.add('memo-tab');
+                btn.id = `tab-${num}`;
+                btn.onclick = () => switchMemo(num);
+                sidebar.appendChild(btn);
+            });
         }
         document.getElementById('tab-1').classList.add('active');
     }
@@ -393,6 +421,31 @@
         }
     }
 
+    function clearAllMemos() {
+        if (!confirm('                    Are you sure you want to clear ALL 30 memos?')) return;
+        // Snapshot each memo individually into its own per-tab clearHistory
+        const fields = document.querySelectorAll('#customerForm input, #customerForm textarea, #customerForm select');
+        for (let i = 1; i <= 30; i++) {     
+            let snapshot = {};
+            fields.forEach(field => {
+                const val = localStorage.getItem(`memo${i}_${field.id}`);
+                snapshot[field.id] = val !== null ? val : (field.tagName === 'SELECT' ? field.options[0].value : '');
+            });
+            if (!clearHistory[i]) clearHistory[i] = [];
+            clearHistory[i].push(snapshot);
+            if (clearHistory[i].length > 10) clearHistory[i].shift();
+            redoHistory[i] = [];
+        }
+        // Wipe all memo keys
+        Object.keys(localStorage).filter(k => k.startsWith('memo')).forEach(k => localStorage.removeItem(k));
+        loadMemo(currentMemoId);
+        updateToggleUI('vulnerable', false);
+        updateToggleUI('dpa', false);
+        const btn = document.getElementById('clearAllBtn');
+        btn.textContent = '✓';
+        setTimeout(() => { btn.textContent = '🗑️'; }, 1500);
+    }
+
     document.getElementById('customerForm').addEventListener('input', (e) => {
         if (e.target.id && e.target.type !== 'button') {
             const val = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -416,19 +469,38 @@
         actionsField.focus();
     }
 
+    function insertSCIOTemplate() {
+        const actionsField = document.getElementById('actions');
+        actionsField.value += (actionsField.value ? '\n' : '') + 'SCIO ref : []';
+        localStorage.setItem(`memo${currentMemoId}_actions`, actionsField.value);
+        actionsField.focus();
+    }
+
+    function insertSLATemplate() {
+        const actionsField = document.getElementById('actions');
+        actionsField.value += (actionsField.value ? '\n' : '') + 'SLA:';
+        localStorage.setItem(`memo${currentMemoId}_actions`, actionsField.value);
+        actionsField.focus();
+    }
+
     function restoreLastDeleted() {
         const btn = document.getElementById('undoBtn');
-        if (clearHistory.length === 0) {
+        const history = clearHistory[currentMemoId];
+        if (!history || history.length === 0) {
             btn.classList.add('shake-no');
             setTimeout(() => { btn.classList.remove('shake-no'); }, 400);
             return;
         }
-        const historyItem = clearHistory.pop();
-        const data = historyItem.data;
-        const targetMemoId = historyItem.memoId;
-        if (currentMemoId !== targetMemoId) switchMemo(targetMemoId);
-
         const fields = document.querySelectorAll('#customerForm input, #customerForm textarea, #customerForm select');
+        let currentSnapshot = {};
+        fields.forEach(field => {
+            currentSnapshot[field.id] = field.type === 'checkbox' ? field.checked : field.value;
+        });
+        if (!redoHistory[currentMemoId]) redoHistory[currentMemoId] = [];
+        redoHistory[currentMemoId].push(currentSnapshot);
+        if (redoHistory[currentMemoId].length > 10) redoHistory[currentMemoId].shift();
+
+        const data = history.pop();
         fields.forEach(field => {
             if (data[field.id] !== undefined) {
                 if (field.type === 'checkbox') {
@@ -437,7 +509,38 @@
                 } else {
                     field.value = data[field.id];
                 }
-                localStorage.setItem(`memo${targetMemoId}_${field.id}`, data[field.id]);
+                localStorage.setItem(`memo${currentMemoId}_${field.id}`, data[field.id]);
+            }
+        });
+    }
+
+    function redoLastDeleted() {
+        const btn = document.getElementById('redoBtn');
+        const history = redoHistory[currentMemoId];
+        if (!history || history.length === 0) {
+            btn.classList.add('shake-no');
+            setTimeout(() => { btn.classList.remove('shake-no'); }, 400);
+            return;
+        }
+        const fields = document.querySelectorAll('#customerForm input, #customerForm textarea, #customerForm select');
+        let currentSnapshot = {};
+        fields.forEach(field => {
+            currentSnapshot[field.id] = field.type === 'checkbox' ? field.checked : field.value;
+        });
+        if (!clearHistory[currentMemoId]) clearHistory[currentMemoId] = [];
+        clearHistory[currentMemoId].push(currentSnapshot);
+        if (clearHistory[currentMemoId].length > 10) clearHistory[currentMemoId].shift();
+
+        const data = history.pop();
+        fields.forEach(field => {
+            if (data[field.id] !== undefined) {
+                if (field.type === 'checkbox') {
+                    field.checked = data[field.id];
+                    updateToggleUI(field.id.split('_')[1], field.checked);
+                } else {
+                    field.value = data[field.id];
+                }
+                localStorage.setItem(`memo${currentMemoId}_${field.id}`, data[field.id]);
             }
         });
     }
@@ -460,7 +563,7 @@
             `Who was the caller?:` + NL + f('caller') + DNL +
             `Account holder or contact type:` + NL + f('account_holder_type') + DNL +
             `Passed/failed DPA checks:` + NL + f('dpa_checks') + prevDPA + DNL +
-            `What is the customer’s issue?:` + NL + f('issue') + DNL +
+            `What is the customer's issue?:` + NL + f('issue') + DNL +
             `Actions taken by you:` + NL + f('actions') + DNL +
             `The outcome agreed with the customer:` + NL + f('outcome_status') + outNote + DNL +
             `Did the customer request to speak to someone else?:` + NL + f('requested_someone_else_opt') + reqNote + DNL +
@@ -489,8 +592,11 @@
         fields.forEach(field => {
             snapshot[field.id] = field.type === 'checkbox' ? field.checked : field.value;
         });
-        clearHistory.push({ memoId: currentMemoId, data: snapshot });
-        if (clearHistory.length > 10) clearHistory.shift();
+        if (!clearHistory[currentMemoId]) clearHistory[currentMemoId] = [];
+        clearHistory[currentMemoId].push(snapshot);
+        if (clearHistory[currentMemoId].length > 10) clearHistory[currentMemoId].shift();
+        // reset redo stack on new clear
+        redoHistory[currentMemoId] = [];
 
         clearBtn.textContent = "Cleared!";
         setTimeout(() => { clearBtn.textContent = "Clear Memo"; }, 1500);
